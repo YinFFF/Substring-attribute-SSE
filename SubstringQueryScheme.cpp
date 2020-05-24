@@ -48,7 +48,7 @@ int splitStringToVect(const string & srcStr, vector<string> & destVect, const st
 }
 
 
-void readKeywords(vector<vector<string> > &attributes_list, char* file_name, int records_size){
+void readKeywords(vector<vector<string> > &attributes_list, char* file_name, int records_size, int attributes_size){
     string line;
     ifstream readfile(file_name);
     int count = 0;
@@ -59,6 +59,8 @@ void readKeywords(vector<vector<string> > &attributes_list, char* file_name, int
                 line.erase(line.end()  - 1, line.end());
             vector<string> keywords;
             splitStringToVect(line, keywords, " ");
+            if (keywords.size() < attributes_size + 1)
+                continue;
             attributes_list.push_back(keywords);
             count ++;
         }
@@ -121,25 +123,36 @@ int TestNewSolution(char *file_name)
     
     // read keywords to keywords_list from the file
     vector<vector<string>> records;
-    readKeywords(records, file_name, 10000); 
+    readKeywords(records, file_name, 4000, 5); 
 
-//    for (int i = 0; i < attribute_list.size(); i++){
-//        printf("%d, size: %d, id: %s\n", i, attribute_list[i].size(), attribute_list[i][0].c_str());
-//    }
- 
+
     // transfer records to a set of string
     vector<string> string_set;
     keywords_to_str(records, AttributesSize, string_set);
-    
 
+//    map<int, int> attributes_records;
+//    cout << records.size() << endl;
+//    for (int i = 0; i < records.size(); i++){
+//        if (attributes_records.find(records[i].size()) == attributes_records.end()){
+//            attributes_records[records[i].size()] = 1;
+//        }else
+//            attributes_records[records[i].size()] += 1;
+//        
+//    }
+//
+//    for (auto itr = attributes_records.begin(); itr != attributes_records.end(); itr++)
+//        cout << itr->first << ": " << itr->second << endl;
+//    return 1;
+    
+/*
     // Build a set of position heap
     vector<PositionHeap *> keywords_index;
     for (int i = 0; i < AttributesSize; i++){
         PositionHeap *heap = new PositionHeap(string_set[i].c_str(), aes_key, records, i + 1);
         keywords_index.push_back(heap);
     }
-    
-
+*/    
+/*
     // Input query keywords
     vector<string> query_keywords;
     vector<vector<string> > matching_keywords;
@@ -149,43 +162,21 @@ int TestNewSolution(char *file_name)
 //        getline(cin, query_keyword);
 //        query_keywords.push_back(query_keyword);
 //    }
-    
+*/
+/*
     map<int,struct time_count> test_count;
     for(int j = 0; j < records.size(); j++){
         
         // Multi-substring query
         for (int i = 0; i < AttributesSize; i++){
             
-            gettimeofday(&time1,NULL);
-            //cout << heaps[i]->T;
             vector<string> cur_keywords = keywords_index[i]->search(records[j][i+1].c_str(), aes_key);
-    //        matching_keywords.push_back(cur_keywords);
-            gettimeofday(&time2,NULL);
+            matching_keywords.push_back(cur_keywords);
 
-            //msec
-            evaluate_time = 1000 * ((time2.tv_sec-time1.tv_sec)+((double)(time2.tv_usec-time1.tv_usec))/1000000);
-            if (test_count.count((cur_keywords).size())==0){
-                time_count map_value = {evaluate_time, 1};
-                test_count[(cur_keywords).size()] = map_value;
-            }
-            else{
-                test_count[(cur_keywords).size()].total_time += evaluate_time;
-                test_count[(cur_keywords).size()].test_num += 1;
-            }
+           
         }
     }
 
-    for(auto itr = test_count.begin(); itr != test_count.end(); itr++)
-//        cout << "matching_keywords size: " << (itr)->first << ", " <<  "time: " << 
-//        (itr)->second.total_time/(itr)->second.test_num << endl;
-        cout << "matching_keywords size: " << (itr)->first << ", " << "count: " << (itr)->second.test_num << ", "<<
-        "time: " << (itr)->second.total_time/(itr)->second.test_num << endl;
-
-    
-   
-//    printf("records_size(): %d    evaluate_time: %f\n",  records.size(), evaluate_time/records.size());
-
-    return 1;
     
     for (int i = 0; i < matching_keywords.size(); i++){
         cout << "Attributes " << i << ": ";
@@ -194,6 +185,7 @@ int TestNewSolution(char *file_name)
         }
         cout << endl;
     }
+*/
     
     // Build a set of bitmap index
     vector<BMIndex *> records_index;
@@ -203,33 +195,46 @@ int TestNewSolution(char *file_name)
     }
  
     
-    //Multi-keyword query
-    unsigned char * all_records_bitmap = new unsigned char[records.size()/8 + 1];
-    memset(all_records_bitmap, 0, records.size()/8 + 1);
-    unsigned char * cur_records_bitmap = new unsigned char[records.size()/8 + 1];
-    memset(cur_records_bitmap, 0, records.size()/8 + 1);
-    for (int i = 0; i < AttributesSize; i++){
-        records_index[i]->search(query_keywords[i], aes_key, cur_records_bitmap);
-        for (int j = 0; j < records.size()/8 + 1; j++){
-            all_records_bitmap[j] |= cur_records_bitmap[j];
-        }
-    }
-
-    vector<int> matching_records;
-    for (int i = 0; i < records.size()/8 + 1; i++){
-        unsigned char cur_charater = *(all_records_bitmap + i);
-        for (int j = 0; j < 8; j++){
-            if ((cur_charater & (1 << 7)) != 0){
-                matching_records.push_back(i * 8 + j);
+    gettimeofday(&time1,NULL);
+    for (int z = 0; z < records.size(); z++){
+        //Multi-keyword query
+        unsigned char * all_records_bitmap = new unsigned char[records.size()/8 + 1];
+        memset(all_records_bitmap, 0, records.size()/8 + 1);
+        unsigned char * cur_records_bitmap = new unsigned char[records.size()/8 + 1];
+        memset(cur_records_bitmap, 0, records.size()/8 + 1);
+        for (int i = 0; i < AttributesSize; i++){
+            records_index[i]->search(records[z][i + 1], aes_key, cur_records_bitmap);
+            for (int j = 0; j < records.size()/8 + 1; j++){
+                all_records_bitmap[j] |= cur_records_bitmap[j];
             }
-            cur_charater <<= 1;
         }
+
+        vector<int> matching_records;
+        for (int i = 0; i < records.size()/8 + 1; i++){
+            unsigned char cur_charater = *(all_records_bitmap + i);
+            for (int j = 0; j < 8; j++){
+                if ((cur_charater & (1 << 7)) != 0){
+                    matching_records.push_back(i * 8 + j);
+                }
+                cur_charater <<= 1;
+            }
+        }
+        
+        delete all_records_bitmap;
+        delete cur_records_bitmap;
     }
-    cout << "mathcaingrecpd.size():" << matching_records.size() << endl;
-    for (int i = 0; i < matching_records.size(); i++){
-        cout << matching_records[i] << " ";
-    }
-    cout << endl;
+    gettimeofday(&time2,NULL);
+
+    
+    //sec
+    evaluate_time =  1000 * ((time2.tv_sec-time1.tv_sec)+((double)(time2.tv_usec-time1.tv_usec))/1000000);
+    printf("records_size(): %d  evaluate_time: %f\n",  records.size(), evaluate_time/records.size());
+    
+//    cout << "mathcaingrecpd.size():" << matching_records.size() << endl;
+//    for (int i = 0; i < matching_records.size(); i++){
+//        cout << matching_records[i] << " ";
+//    }
+//    cout << endl;
     
     return 0;  
     
