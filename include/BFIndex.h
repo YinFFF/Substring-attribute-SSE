@@ -7,6 +7,25 @@
 
 using namespace std;
 
+class test_class
+{
+
+    int a;
+    char *c;
+    int b;
+    public:
+        test_class(int a, int b){
+            this->a = a;
+            this->b = b;
+            c = new char[10];
+        }
+        ~test_class(){
+            delete[] c;
+        }
+};
+
+
+
 class BFIndex { 
     bloom_parameters parameters;
     bloom_filter *filter;
@@ -32,9 +51,9 @@ public:
         }
 
         parameters.compute_optimal_parameters();
-        
+
         filter = new bloom_filter(parameters); 
-        
+       
         for (int j = 0; j < plaintext_keyword.size(); j++)
             for (int z = j; z < plaintext_keyword.size(); z++)
                 filter->insert(plaintext_keyword.substr(j, z - j + 1));
@@ -54,6 +73,7 @@ public:
                                                     aes_key, 
                                                     iv, 
                                                     (unsigned char *)&ciphertext_keyword[AES_BLOCK_SIZE]);
+                                                    
     }
     
     ~BFIndex(){

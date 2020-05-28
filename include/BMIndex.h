@@ -40,37 +40,14 @@ public:
     }
 
     int search(string &search_keyword, unsigned char* records_key, unsigned char* output) {
-//    cout << "in search**********************\n";
-//    for (auto itr = bitmap.begin(); itr != bitmap.end(); itr++){
-//        cout << itr->first;
-//        for (int j =  0; j < n; j++)
-//            printf(" %x ", itr->second[j]);
-//        cout << endl;
-//    }
         unsigned char * Hmac_output = NULL;  
         unsigned int len_of_Hmac_output = 0; 
 //        HmacEncode("sha256", (const char*)records_key, 32, search_keyword.c_str(), search_keyword.size(), 
 //		           Hmac_output, len_of_Hmac_output);
 //        string K((char *)Hmac_output, len_of_Hmac_output);
-
         string K(search_keyword);
         if(bitmap.find(K) != bitmap.end()){
-//            cout << "==================printf in search===================\n";
-//            cout << K << endl;
             memcpy(output, bitmap[K], n);
-//            for (int i = 0; i < n; i++)
-//                printf("%x ", bitmap[K][i]);
-//            cout << endl;
-            
-//            for (int i = 0; i < n; i++){
-//                unsigned char cur_charater = *(bitmap[K] + i);
-//                for (int j = 0; j < 8; j++){
-//                    if ((cur_charater & (1 << 7)) != 0){
-//                        result.push_back(i * 8 + j);
-//                    }
-//                    cur_charater <<= 1;
-//                }
-//            }
         }
         return 1;
     }        

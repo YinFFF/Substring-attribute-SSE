@@ -123,69 +123,53 @@ int TestNewSolution(char *file_name)
     
     // read keywords to keywords_list from the file
     vector<vector<string>> records;
-    readKeywords(records, file_name, 4000, 5); 
+    readKeywords(records, file_name, 2000, AttributesSize); 
 
 
     // transfer records to a set of string
     vector<string> string_set;
     keywords_to_str(records, AttributesSize, string_set);
-
-//    map<int, int> attributes_records;
-//    cout << records.size() << endl;
-//    for (int i = 0; i < records.size(); i++){
-//        if (attributes_records.find(records[i].size()) == attributes_records.end()){
-//            attributes_records[records[i].size()] = 1;
-//        }else
-//            attributes_records[records[i].size()] += 1;
-//        
-//    }
-//
-//    for (auto itr = attributes_records.begin(); itr != attributes_records.end(); itr++)
-//        cout << itr->first << ": " << itr->second << endl;
-//    return 1;
     
-/*
+
     // Build a set of position heap
     vector<PositionHeap *> keywords_index;
     for (int i = 0; i < AttributesSize; i++){
         PositionHeap *heap = new PositionHeap(string_set[i].c_str(), aes_key, records, i + 1);
         keywords_index.push_back(heap);
     }
-*/    
-/*
+   
+
     // Input query keywords
-    vector<string> query_keywords;
-    vector<vector<string> > matching_keywords;
+//    vector<string> query_keywords;
+//    vector<vector<string> > matching_keywords;
 //    for (int i = 0; i < AttributesSize; i++){
 //        string query_keyword;
 //        cout << "input keyword " << i << ":";
 //        getline(cin, query_keyword);
 //        query_keywords.push_back(query_keyword);
 //    }
-*/
-/*
-    map<int,struct time_count> test_count;
+
+
+//    map<int,struct time_count> test_count;
+    vector<vector<string>> matching_keywords;
     for(int j = 0; j < records.size(); j++){
         
         // Multi-substring query
-        for (int i = 0; i < AttributesSize; i++){
-            
+        for (int i = 0; i < AttributesSize; i++){            
             vector<string> cur_keywords = keywords_index[i]->search(records[j][i+1].c_str(), aes_key);
             matching_keywords.push_back(cur_keywords);
-
-           
         }
     }
 
     
-    for (int i = 0; i < matching_keywords.size(); i++){
-        cout << "Attributes " << i << ": ";
-        for (int j = 0; j < matching_keywords[i].size(); j++){
-            cout << matching_keywords[i][j] << " ";
-        }
-        cout << endl;
-    }
-*/
+//    for (int i = 0; i < matching_keywords.size(); i++){
+//        cout << "Attributes " << i << ": ";
+//        for (int j = 0; j < matching_keywords[i].size(); j++){
+//            cout << matching_keywords[i][j] << " ";
+//        }
+//        cout << endl;
+//    }
+
     
     // Build a set of bitmap index
     vector<BMIndex *> records_index;
@@ -226,7 +210,7 @@ int TestNewSolution(char *file_name)
     gettimeofday(&time2,NULL);
 
     
-    //sec
+    //msec
     evaluate_time =  1000 * ((time2.tv_sec-time1.tv_sec)+((double)(time2.tv_usec-time1.tv_usec))/1000000);
     printf("records_size(): %d  evaluate_time: %f\n",  records.size(), evaluate_time/records.size());
     
@@ -241,48 +225,103 @@ int TestNewSolution(char *file_name)
 }
 
 
+
 // test naive solution
-//int TestNaiveSolution(char *file_name)
-//{   
-//    // read keywords from the file
-//    vector<string> keywords_list; 
-//    
-//    readKeywords(keywords_list, file_name); 
-//
-//    // initial AES key
-//    unsigned char aes_key[32];
-//    
-//    RAND_bytes(aes_key, 32);
-//
-//   
-//    BFIndex *index[keywords_list.size()];
-//    
-//    for (int i = 0; i < keywords_list.size(); i++){
-//        index[i] = new BFIndex(keywords_list[i], aes_key);
-//    }
-//    
-//    // Search
-//    char S[20] = {0};    
-//    cout << "search keyword:";
-//    cin >> S;
-//    string search_keyword(S);
-//    vector<string> matching_keywords;
-//    string return_keyword;
-//
-//    for (int i = 0; i < keywords_list.size(); i++){
-//        return_keyword = index[i] -> search(search_keyword, aes_key);
-//        
-//        if (return_keyword.size() > 0){
-//            matching_keywords.push_back(return_keyword);
-//        }
-//    }
-//
-//    for(auto itr = matching_keywords.begin(); itr != matching_keywords.end(); itr++)
-//        cout << *itr << endl;
-//    cout << matching_keywords.size() << endl;
-//      
-//    return 0;
-//}
+int TestNaiveSolution(char *file_name)
+{   
+    // time calculation
+    struct timeval time1, time2;
+    float evaluate_time = 0;
+    
+    // Read keywords to keywords_list from the file
+    vector<vector<string>> records;
+    readKeywords(records, file_name, 2000, AttributesSize); 
+
+    // Initial AES key
+    unsigned char aes_key[32];
+    RAND_bytes(aes_key, 32);
+
+//    // Build bloom filters   
+    vector<vector<BFIndex *>> index;
+    for (int i = 0; i < records.size(); i++){
+        vector<BFIndex *> row;
+        for (int j = 0; j < AttributesSize; j++){
+            row.push_back(new BFIndex(records[i][j + 1], aes_key));
+        }
+        index.push_back(row);
+    }
+   
+/*
+    
+    // Input query keywords
+    vector<string> query_keywords;
+    for (int j = 0; j < AttributesSize; j++){
+        string query_keyword;
+        cout << "input keyword " << j << ":";
+        getline(cin, query_keyword);
+        query_keywords.push_back(query_keyword);
+    }
+*/
+    // Multi-substring query
+    map<int,struct time_count> test_count;
+    for (int z = 0; z < records.size(); z++){
+         // Search
+//        vector<string> matching_sets[AttributesSize];
+         
+        for (int j = 0; j < AttributesSize; j++){
+            cout << "z:" << z << ", " << "j:" << j << endl;
+            int count = 0;
+            gettimeofday(&time1,NULL);
+            for (int i = 0; i < records.size(); i++){
+                string keyword = index[i][j] -> search(records[z][j + 1], aes_key);
+                if (keyword.size() > 0)
+//                    matching_sets[j].push_back(keyword);
+                    count++;
+            }
+            gettimeofday(&time2,NULL);
+            
+            //msec
+            evaluate_time = 1000 * ((time2.tv_sec-time1.tv_sec)+((double)(time2.tv_usec-time1.tv_usec))/1000000);
+            if (test_count.count(count)==0){
+                time_count map_value = {evaluate_time, 1};
+                test_count[count] = map_value;
+            }
+            else{
+                test_count[count].total_time += evaluate_time;
+                test_count[count].test_num += 1;
+            }
+        }
+    }
+
+    for(auto itr = test_count.begin(); itr != test_count.end(); itr++)
+        cout << "matching_keywords size: " << (itr)->first << ", " << "count: " << (itr)->second.test_num << ", "<<
+        "time: " << (itr)->second.total_time/(itr)->second.test_num << endl;
+    
+/*
+    for (int j = 0; j < AttributesSize; j++){
+        cout << "attribute:" << j << endl;
+        for (int i = 0; i < matching_sets[j].size(); i++)
+            cout << matching_sets[j][i] << " ";
+        cout << endl;
+    }
+    */
+/*
+    // Intersect all the sets
+    map<string, int> intersect_set;
+    for (int j = 0; j < AttributesSize; j++){
+        for (int i = 0; i < matching_sets[j].size(); i++){
+            if (intersect_set.find(matching_sets[j][i]) == intersect_set.end())
+                intersect_set[matching_sets[j][i]] = 1;
+            else
+                intersect_set[matching_sets[j][i]] += 1;
+        }
+    }
+*/
+
+    // Multi-keyword query
+    
+    return 0;
+}
 
 int main(int argc, char * argv[])
 {
@@ -290,8 +329,8 @@ int main(int argc, char * argv[])
 //    char file_name[30] = "./Testfile/test";
     char file_name[50] = "./Testfile/records_with_5_attributes";
     
-    TestNewSolution(file_name);;
-//    TestNaiveSolution(file_name);
+//    TestNewSolution(file_name);;
+    TestNaiveSolution(file_name);
 
     return 0;
 }
