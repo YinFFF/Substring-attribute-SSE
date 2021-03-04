@@ -21,17 +21,6 @@ SI/SI.si4project/SI.sip_xsb
 SI/SI.si4project/SI.sip_xsd
 SI/SI.si4project/SI.siproj
 SI/SI.si4project/SI.siproj_settings.xml
-distinct_words
-distinct_word_5000
-distinct_word_40000
-distinct_word_35000
-distinct_word_30000
-distinct_word_25000
-distinct_word_20000
-distinct_word_15000
-distinct_word_10000
-test
 *.m
 *.png
 SI.si4project/
-TestFile/
