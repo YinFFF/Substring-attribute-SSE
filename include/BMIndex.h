@@ -5,16 +5,16 @@
 #include <iostream>
 #include <map>
 #include "AES.h"
+#include <string>
 
 using namespace std;
 
 class BMIndex { 
-public:
     int id;
     int n; // the nubmer of bytes in a row of the bitmap
     map<string, unsigned char *> bitmap;
-    
-//    BMIndex(vector<string> &plaintext_keyword, unsigned char* records_key){
+
+public:
     BMIndex(vector<vector<string>> &records, int attribute_index, unsigned char* records_key){
         n = records.size() / 8 + 1;
         for (id = 0; id < records.size(); id++){
@@ -53,4 +53,36 @@ public:
     }        
 };
 
+
+
+class InvertedIndex{
+    map<string, int> index;
+public:
+    InvertedIndex(vector<vector<string>> &records, int attribute_index, unsigned char* records_key){
+        map<string, int> keyword_count;
+        for (int i = 0; i < records.size(); i++){
+            if (keyword_count.find(records[i][attribute_index]) == keyword_count.end())
+                keyword_count[records[i][attribute_index]] = 1;
+            else
+                keyword_count[records[i][attribute_index]] += 1;        
+            index[records[i][attribute_index] + to_string(static_cast<long 
+            long>(keyword_count[records[i][attribute_index]]))] = i;
+       }
+
+//        cout << attribute_index << endl;
+//        for (auto itr = index.begin(); itr != index.end(); itr++)
+//            cout << itr->first << ":" << itr->second << endl;
+        
+    }
+
+    vector<int> search(string &search_keyword, unsigned char* records_key){
+        vector<int> result;
+        int keyword_count = 1;
+        while (index.find(search_keyword + to_string(static_cast<long long>(keyword_count))) != index.end()){
+            result.push_back(index[search_keyword + to_string(static_cast<long long>(keyword_count))]);
+            keyword_count++;
+        }
+        return result;
+    }
+};
 #endif

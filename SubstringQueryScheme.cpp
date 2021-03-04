@@ -17,7 +17,6 @@
 #include "AES.h"
 #include "BMIndex.h"
 
-
 using namespace std;
 
 
@@ -107,11 +106,12 @@ struct time_count{
 
 
 // Test the proposed scheme
-#define AttributesSize 5
+#define AttributesSize 9
+#define records_limit 2000
 int TestNewSolution(char *file_name)
 {
   
-    // initial AES key
+    // initial AES key and record key
     unsigned char aes_key[32];
     unsigned char records_key[32];
     RAND_bytes(aes_key, 32);
@@ -123,7 +123,7 @@ int TestNewSolution(char *file_name)
     
     // read keywords to keywords_list from the file
     vector<vector<string>> records;
-    readKeywords(records, file_name, 2000, AttributesSize); 
+    readKeywords(records, file_name, records_limit, AttributesSize); 
 
 
     // transfer records to a set of string
@@ -152,11 +152,10 @@ int TestNewSolution(char *file_name)
 
 //    map<int,struct time_count> test_count;
     vector<vector<string>> matching_keywords;
-    for(int j = 0; j < records.size(); j++){
-        
+    for(int i = 0; i < records.size(); i++){
         // Multi-substring query
-        for (int i = 0; i < AttributesSize; i++){            
-            vector<string> cur_keywords = keywords_index[i]->search(records[j][i+1].c_str(), aes_key);
+        for (int j = 0; j < AttributesSize; j++){            
+            vector<string> cur_keywords = keywords_index[j]->search(records[i][j+1].c_str(), aes_key);
             matching_keywords.push_back(cur_keywords);
         }
     }
@@ -173,32 +172,32 @@ int TestNewSolution(char *file_name)
     
     // Build a set of bitmap index
     vector<BMIndex *> records_index;
-    for (int i = 0; i < AttributesSize; i++){
-        BMIndex *cur_record_index = new BMIndex(records, i+1, records_key);
+    for (int j = 0; j < AttributesSize; j++){
+        BMIndex *cur_record_index = new BMIndex(records, j+1, records_key);
         records_index.push_back(cur_record_index);
     }
  
     
     gettimeofday(&time1,NULL);
-    for (int z = 0; z < records.size(); z++){
+    for (int i = 0; i < records.size(); i++){
         //Multi-keyword query
         unsigned char * all_records_bitmap = new unsigned char[records.size()/8 + 1];
         memset(all_records_bitmap, 0, records.size()/8 + 1);
         unsigned char * cur_records_bitmap = new unsigned char[records.size()/8 + 1];
         memset(cur_records_bitmap, 0, records.size()/8 + 1);
-        for (int i = 0; i < AttributesSize; i++){
-            records_index[i]->search(records[z][i + 1], aes_key, cur_records_bitmap);
-            for (int j = 0; j < records.size()/8 + 1; j++){
-                all_records_bitmap[j] |= cur_records_bitmap[j];
+        for (int j = 0; j < AttributesSize; j++){
+            records_index[j]->search(records[i][j + 1], aes_key, cur_records_bitmap);
+            for (int z = 0; z < records.size()/8 + 1; z++){
+                all_records_bitmap[z] |= cur_records_bitmap[z];
             }
         }
 
         vector<int> matching_records;
-        for (int i = 0; i < records.size()/8 + 1; i++){
-            unsigned char cur_charater = *(all_records_bitmap + i);
-            for (int j = 0; j < 8; j++){
+        for (int z = 0; z < records.size()/8 + 1; z++){
+            unsigned char cur_charater = *(all_records_bitmap + z);
+            for (int h = 0; h < 8; h++){
                 if ((cur_charater & (1 << 7)) != 0){
-                    matching_records.push_back(i * 8 + j);
+                    matching_records.push_back(z * 8 + h);
                 }
                 cur_charater <<= 1;
             }
@@ -212,7 +211,7 @@ int TestNewSolution(char *file_name)
     
     //msec
     evaluate_time =  1000 * ((time2.tv_sec-time1.tv_sec)+((double)(time2.tv_usec-time1.tv_usec))/1000000);
-    printf("records_size(): %d  evaluate_time: %f\n",  records.size(), evaluate_time/records.size());
+    printf("records_size(): %d  Attributes_size: %d    evaluate_time: %f\n",  records.size(), AttributesSize, evaluate_time/records.size());
     
 //    cout << "mathcaingrecpd.size():" << matching_records.size() << endl;
 //    for (int i = 0; i < matching_records.size(); i++){
@@ -235,33 +234,24 @@ int TestNaiveSolution(char *file_name)
     
     // Read keywords to keywords_list from the file
     vector<vector<string>> records;
-    readKeywords(records, file_name, 2000, AttributesSize); 
+    readKeywords(records, file_name, 10000, AttributesSize); 
 
-    // Initial AES key
+    // Initial AES key and record key
     unsigned char aes_key[32];
+    unsigned char records_key[32];
     RAND_bytes(aes_key, 32);
-
-//    // Build bloom filters   
-    vector<vector<BFIndex *>> index;
+    RAND_bytes(records_key, 32);
+/*
+    // Build bloom filters   
+    vector<vector<BFIndex *>> keywords_index;
     for (int i = 0; i < records.size(); i++){
         vector<BFIndex *> row;
         for (int j = 0; j < AttributesSize; j++){
             row.push_back(new BFIndex(records[i][j + 1], aes_key));
         }
-        index.push_back(row);
+        keywords_index.push_back(row);
     }
    
-/*
-    
-    // Input query keywords
-    vector<string> query_keywords;
-    for (int j = 0; j < AttributesSize; j++){
-        string query_keyword;
-        cout << "input keyword " << j << ":";
-        getline(cin, query_keyword);
-        query_keywords.push_back(query_keyword);
-    }
-*/
     // Multi-substring query
     map<int,struct time_count> test_count;
     for (int z = 0; z < records.size(); z++){
@@ -273,7 +263,7 @@ int TestNaiveSolution(char *file_name)
             int count = 0;
             gettimeofday(&time1,NULL);
             for (int i = 0; i < records.size(); i++){
-                string keyword = index[i][j] -> search(records[z][j + 1], aes_key);
+                string keyword = keywords_index[i][j] -> search(records[z][j + 1], aes_key);
                 if (keyword.size() > 0)
 //                    matching_sets[j].push_back(keyword);
                     count++;
@@ -296,6 +286,7 @@ int TestNaiveSolution(char *file_name)
     for(auto itr = test_count.begin(); itr != test_count.end(); itr++)
         cout << "matching_keywords size: " << (itr)->first << ", " << "count: " << (itr)->second.test_num << ", "<<
         "time: " << (itr)->second.total_time/(itr)->second.test_num << endl;
+*/
     
 /*
     for (int j = 0; j < AttributesSize; j++){
@@ -317,9 +308,57 @@ int TestNaiveSolution(char *file_name)
         }
     }
 */
+    // Build m inverted index, where each of them represents an attribute
+    vector<InvertedIndex *> records_index;
+    for (int j = 0; j < AttributesSize; j++){
+        InvertedIndex *temp_index = new InvertedIndex(records, j + 1, records_key);
+        records_index.push_back(temp_index);
+    }
+//    gettimeofday(&time2,NULL);
 
-    // Multi-keyword query
+    vector<vector<string>>().swap(records);
+    getchar();
+    return 1;
+/*
+    // Input query keywords
+    vector<string> query_keywords;
+    for (int j = 0; j < AttributesSize; j++){
+        string query_keyword;
+        cout << "input keyword " << j << ":";
+        getline(cin, query_keyword);
+        query_keywords.push_back(query_keyword);
+    }
+    */
     
+    // Multi-keyword query
+    int matching_keyword = 0;
+    gettimeofday(&time1,NULL);
+    for (int i = 0; i < records.size(); i++){
+        map<int, int> intersect_records_set;
+        for (int j = 0; j < AttributesSize; j++){
+            vector<int> records_set = records_index[j]->search(records[i][j + 1], aes_key);
+//            cout << "j: " << j << " size:" << records_set.size() << endl;
+            
+            for (int k = 0; k < records_set.size(); k++)
+                if (intersect_records_set.find(records_set[k]) == intersect_records_set.end())
+                    intersect_records_set[records_set[k]] = 1;
+                else
+                    intersect_records_set[records_set[k]] += 1;
+        }
+
+        
+        for (auto itr = intersect_records_set.begin(); itr != intersect_records_set.end(); itr++){
+            if (itr->second == AttributesSize){
+                ;
+            }
+        }
+    }
+    gettimeofday(&time2,NULL);
+        
+    //msec
+    evaluate_time =  1000 * ((time2.tv_sec-time1.tv_sec)+((double)(time2.tv_usec-time1.tv_usec))/1000000);
+    printf("records_size(): %d  evaluate_time: %f\n",  records.size(), evaluate_time/records.size());
+
     return 0;
 }
 
@@ -329,8 +368,8 @@ int main(int argc, char * argv[])
 //    char file_name[30] = "./Testfile/test";
     char file_name[50] = "./Testfile/records_with_5_attributes";
     
-//    TestNewSolution(file_name);;
-    TestNaiveSolution(file_name);
+    TestNewSolution(file_name);;
+//    TestNaiveSolution(file_name);
 
     return 0;
 }
